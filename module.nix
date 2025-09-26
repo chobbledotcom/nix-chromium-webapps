@@ -8,25 +8,22 @@
 with lib;
 
 let
-  cfg = config.services.chromium-webapps;
+  cfg = config.programs.chromium-webapps;
 
   webAppType = types.submodule {
     options = {
       name = mkOption {
         type = types.str;
         description = "Name of the web application";
-        example = "GitHub";
       };
       url = mkOption {
         type = types.str;
         description = "URL to launch the application with";
-        example = "https://github.com";
       };
       icon = mkOption {
-        type = types.nullOr types.str;
+        type = types.nullOr types.path;
         default = null;
-        description = "Filename of icon in ~/.config/chromium-webapps/icons/";
-        example = "github.svg";
+        description = "Path to icon file";
       };
     };
   };
@@ -35,16 +32,18 @@ let
     app:
     let
       urlStripped = builtins.replaceStrings [ "https://" "http://" ] [ "" "" ] app.url;
-      urlWithSlashes = builtins.replaceStrings [ "/" ] [ "__" ] urlStripped;
+      hasTrailingSlash = lib.hasSuffix "/" app.url;
+      urlWithUnderscores = builtins.replaceStrings [ "/" ] [ "__" ] urlStripped;
       urlForClass =
-        if lib.hasSuffix "__" urlWithSlashes then
-          (lib.removeSuffix "__" urlWithSlashes) + "_"
+        if hasTrailingSlash then
+          lib.removeSuffix "__" urlWithUnderscores + "_"
+        else if !(lib.hasInfix "/" urlStripped) then
+          urlWithUnderscores + "__"
         else
-          urlWithSlashes + "__";
+          urlWithUnderscores;
       wmClass = "chrome-${urlForClass}-Default";
 
       launchScript = pkgs.writeShellScriptBin "${app.name}-webapp" ''
-        export BROWSER="${pkgs.xdg-utils}/bin/xdg-open"
         exec ${pkgs.chromium}/bin/chromium \
           --app=${app.url} \
           --user-data-dir=$HOME/.config/chromium-webapps/${app.name} \
@@ -52,42 +51,29 @@ let
           --disable-features=GlobalShortcutsPortal
       '';
 
-      desktopItem = pkgs.makeDesktopItem {
-        name = app.name;
-        desktopName = app.name;
-        exec = "${launchScript}/bin/${app.name}-webapp";
-        terminal = false;
-        type = "Application";
-        startupWMClass = wmClass;
-        categories = [
-          "Network"
-          "WebBrowser"
-        ];
-      };
-
-      iconName = if app.icon != null then
-        lib.removeSuffix ".svg" (lib.removeSuffix ".png" app.icon)
-        else null;
+      desktopContent = ''
+        [Desktop Entry]
+        Version=1.4
+        Type=Application
+        Name=${app.name}
+        Exec=${launchScript}/bin/${app.name}-webapp
+        Terminal=false
+        Categories=Network;WebBrowser;
+        StartupWMClass=${wmClass}
+        ${lib.optionalString (app.icon != null) "Icon=chromium-webapp-${app.name}"}
+      '';
     in
-    if app.icon != null then
-      pkgs.runCommand "${app.name}-desktop-with-icon" {} ''
-        mkdir -p $out/share/applications
-        cp ${desktopItem}/share/applications/${app.name}.desktop $out/share/applications/
-        echo "Icon=$HOME/.config/chromium-webapps/icons/${app.icon}" >> $out/share/applications/${app.name}.desktop
-      ''
-    else
-      desktopItem;
+    pkgs.runCommand "${app.name}-desktop" { } ''
+      mkdir -p $out/share/applications
+      cat > $out/share/applications/${app.name}.desktop <<EOF
+      ${desktopContent}
+      EOF
+    '';
 
 in
 {
-  options.services.chromium-webapps = {
+  options.programs.chromium-webapps = {
     enable = mkEnableOption "Chromium web applications as desktop apps";
-
-    user = mkOption {
-      type = types.str;
-      description = "User to install web applications for";
-      example = "user";
-    };
 
     webApps = mkOption {
       type = types.listOf webAppType;
@@ -111,17 +97,31 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [
-      chromium
-    ];
+    home.packages = [ pkgs.chromium ] ++ (map mkDesktopEntry cfg.webApps);
 
-    home-manager.users.${cfg.user} = { lib, ... }: {
-      home.packages = map mkDesktopEntry cfg.webApps;
-      home.activation.setupChromiumWebappProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        ${concatMapStrings (app: ''
-          mkdir -p "$HOME/.config/chromium-webapps/${app.name}"
-        '') cfg.webApps}
-      '';
-    };
+    home.activation.setupChromiumWebappProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      ${concatMapStrings (app: ''
+        mkdir -p "$HOME/.config/chromium-webapps/${app.name}"
+      '') cfg.webApps}
+    '';
+
+    xdg.dataFile = lib.listToAttrs (
+      lib.filter (x: x != null) (
+        map (
+          app:
+          if app.icon != null then
+            {
+              name = "icons/hicolor/scalable/apps/chromium-webapp-${app.name}.${
+                if lib.hasSuffix ".svg" (builtins.toString app.icon) then "svg" else "png"
+              }";
+              value = {
+                source = app.icon;
+              };
+            }
+          else
+            null
+        ) cfg.webApps
+      )
+    );
   };
 }

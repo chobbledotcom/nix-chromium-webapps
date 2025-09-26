@@ -1,12 +1,12 @@
 # nix-chromium-webapps
 
-A NixOS flake module for creating Chromium-based web applications as desktop entries.
+A home-manager module for creating Chromium-based web applications as desktop entries.
 
 ## Features
 
 - Creates isolated Chromium profiles for each web app
 - Generates proper desktop entries with WM_CLASS for window manager integration
-- Supports custom icons
+- Supports custom icons via XDG icon theme system
 - External links open in system default browser
 
 ## Usage
@@ -17,13 +17,14 @@ A NixOS flake module for creating Chromium-based web applications as desktop ent
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
     chromium-webapps.url = "github:chobbledotcom/nix-chromium-webapps";
   };
 
-  outputs = { self, nixpkgs, chromium-webapps, ... }: {
+  outputs = { self, nixpkgs, home-manager, chromium-webapps, ... }: {
     nixosConfigurations.yourhostname = nixpkgs.lib.nixosSystem {
       modules = [
-        chromium-webapps.nixosModules.default
+        home-manager.nixosModules.home-manager
         ./configuration.nix
       ];
     };
@@ -31,23 +32,25 @@ A NixOS flake module for creating Chromium-based web applications as desktop ent
 }
 ```
 
-### In your configuration.nix
+### In your home-manager configuration
 
 ```nix
+{ inputs, ... }:
 {
-  services.chromium-webapps = {
+  imports = [ inputs.chromium-webapps.homeManagerModules.default ];
+
+  programs.chromium-webapps = {
     enable = true;
-    user = "yourusername";
     webApps = [
       {
         name = "GitHub";
         url = "https://github.com";
-        icon = "github.svg";
+        icon = ./icons/github.svg;
       }
       {
         name = "Gmail";
         url = "https://mail.google.com";
-        icon = "gmail.png";
+        icon = ./icons/gmail.png;
       }
     ];
   };
@@ -57,10 +60,12 @@ A NixOS flake module for creating Chromium-based web applications as desktop ent
 ### Loading from a separate file
 
 ```nix
+{ inputs, ... }:
 {
-  services.chromium-webapps = {
+  imports = [ inputs.chromium-webapps.homeManagerModules.default ];
+
+  programs.chromium-webapps = {
     enable = true;
-    user = "yourusername";
     webApps = import ./chromium-apps.nix;
   };
 }
@@ -73,44 +78,32 @@ Where `chromium-apps.nix` contains:
   {
     name = "GitHub";
     url = "https://github.com";
-    icon = "github.svg";
+    icon = ./icons/github.svg;
   }
   {
     name = "Gmail";
     url = "https://mail.google.com";
-    icon = "gmail.png";
+    icon = ./icons/gmail.png;
   }
 ]
 ```
 
 ## Options
 
-- `services.chromium-webapps.enable` - Enable the module (boolean)
-- `services.chromium-webapps.user` - Username to install apps for (string)
-- `services.chromium-webapps.webApps` - List of web applications (list of attrsets)
+- `programs.chromium-webapps.enable` - Enable the module (boolean)
+- `programs.chromium-webapps.webApps` - List of web applications (list of attrsets)
   - `name` - Application name (string)
   - `url` - URL to open (string)
-  - `icon` - Icon filename in `~/.config/chromium-webapps/icons/` (string, optional)
+  - `icon` - Path to icon file (path, optional)
 
 ## Requirements
 
-- NixOS with [home-manager](https://github.com/nix-community/home-manager) configured as a NixOS module
+- [home-manager](https://github.com/nix-community/home-manager)
 - Chromium will be automatically installed
 
 ## Icons
 
-Icons should be placed in `~/.config/chromium-webapps/icons/` and referenced by filename in the `icon` field. You can symlink your icon directory using home-manager:
-
-```nix
-{
-  home-manager.users.yourusername = {
-    home.file.".config/chromium-webapps/icons" = {
-      source = ./path/to/your/icons;
-      recursive = true;
-    };
-  };
-}
-```
+Icons are passed as paths and automatically installed to `~/.local/share/icons/hicolor/scalable/apps/` using the XDG icon theme system. Desktop environments will automatically find and display them.
 
 ## Data Storage
 
