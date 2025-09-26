@@ -96,32 +96,28 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    home.packages = [ pkgs.chromium ] ++ (map mkDesktopEntry cfg.webApps);
+  config = mkIf cfg.enable (
+    let
+      mkIconPackage = import ./icons.nix { inherit pkgs lib; };
 
-    home.activation.setupChromiumWebappProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      ${concatMapStrings (app: ''
-        mkdir -p "$HOME/.config/chromium-webapps/${app.name}"
-      '') cfg.webApps}
-    '';
-
-    xdg.dataFile = lib.listToAttrs (
-      lib.filter (x: x != null) (
+      iconPackages = lib.filter (x: x != null) (
         map (
           app:
           if app.icon != null then
-            {
-              name = "icons/hicolor/scalable/apps/chromium-webapp-${app.name}.${
-                if lib.hasSuffix ".svg" (builtins.toString app.icon) then "svg" else "png"
-              }";
-              value = {
-                source = app.icon;
-              };
-            }
+            mkIconPackage app
           else
             null
         ) cfg.webApps
-      )
-    );
-  };
+      );
+    in
+    {
+      home.packages = [ pkgs.chromium ] ++ (map mkDesktopEntry cfg.webApps) ++ iconPackages;
+
+      home.activation.setupChromiumWebappProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        ${concatMapStrings (app: ''
+          mkdir -p "$HOME/.config/chromium-webapps/${app.name}"
+        '') cfg.webApps}
+      '';
+    }
+  );
 }
