@@ -42,12 +42,12 @@ A NixOS flake module for creating Chromium-based web applications as desktop ent
       {
         name = "GitHub";
         url = "https://github.com";
-        icon = ./path/to/github.svg;
+        icon = "github.svg";
       }
       {
         name = "Gmail";
         url = "https://mail.google.com";
-        icon = ./path/to/gmail.png;
+        icon = "gmail.png";
       }
     ];
   };
@@ -73,12 +73,12 @@ Where `chromium-apps.nix` contains:
   {
     name = "GitHub";
     url = "https://github.com";
-    icon = ./icons/github.svg;
+    icon = "github.svg";
   }
   {
     name = "Gmail";
     url = "https://mail.google.com";
-    icon = ./icons/gmail.png;
+    icon = "gmail.png";
   }
 ]
 ```
@@ -90,12 +90,27 @@ Where `chromium-apps.nix` contains:
 - `services.chromium-webapps.webApps` - List of web applications (list of attrsets)
   - `name` - Application name (string)
   - `url` - URL to open (string)
-  - `icon` - Path to icon file (path, optional)
+  - `icon` - Icon filename in `~/.config/chromium-webapps/icons/` (string, optional)
 
 ## Requirements
 
 - NixOS with [home-manager](https://github.com/nix-community/home-manager) configured as a NixOS module
 - Chromium will be automatically installed
+
+## Icons
+
+Icons should be placed in `~/.config/chromium-webapps/icons/` and referenced by filename in the `icon` field. You can symlink your icon directory using home-manager:
+
+```nix
+{
+  home-manager.users.yourusername = {
+    home.file.".config/chromium-webapps/icons" = {
+      source = ./path/to/your/icons;
+      recursive = true;
+    };
+  };
+}
+```
 
 ## Data Storage
 

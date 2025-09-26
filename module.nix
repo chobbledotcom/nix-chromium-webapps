@@ -52,22 +52,31 @@ let
           --disable-features=GlobalShortcutsPortal
       '';
 
-      iconPath = if app.icon != null then "$HOME/.config/chromium-webapps/icons/${app.icon}" else null;
+      desktopItem = pkgs.makeDesktopItem {
+        name = app.name;
+        desktopName = app.name;
+        exec = "${launchScript}/bin/${app.name}-webapp";
+        terminal = false;
+        type = "Application";
+        startupWMClass = wmClass;
+        categories = [
+          "Network"
+          "WebBrowser"
+        ];
+      };
+
+      iconName = if app.icon != null then
+        lib.removeSuffix ".svg" (lib.removeSuffix ".png" app.icon)
+        else null;
     in
-    pkgs.makeDesktopItem ({
-      name = app.name;
-      desktopName = app.name;
-      exec = "${launchScript}/bin/${app.name}-webapp";
-      terminal = false;
-      type = "Application";
-      startupWMClass = wmClass;
-      categories = [
-        "Network"
-        "WebBrowser"
-      ];
-    } // lib.optionalAttrs (app.icon != null) {
-      icon = iconPath;
-    });
+    if app.icon != null then
+      pkgs.runCommand "${app.name}-desktop-with-icon" {} ''
+        mkdir -p $out/share/applications
+        cp ${desktopItem}/share/applications/${app.name}.desktop $out/share/applications/
+        echo "Icon=$HOME/.config/chromium-webapps/icons/${app.icon}" >> $out/share/applications/${app.name}.desktop
+      ''
+    else
+      desktopItem;
 
 in
 {
