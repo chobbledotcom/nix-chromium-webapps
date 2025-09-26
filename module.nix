@@ -23,10 +23,10 @@ let
         example = "https://github.com";
       };
       icon = mkOption {
-        type = types.nullOr types.path;
+        type = types.nullOr types.str;
         default = null;
-        description = "Path to icon file for the desktop entry";
-        example = "./icons/github.svg";
+        description = "Filename of icon in ~/.config/chromium-webapps/icons/";
+        example = "github.svg";
       };
     };
   };
@@ -52,37 +52,22 @@ let
           --disable-features=GlobalShortcutsPortal
       '';
 
-      desktopItem = pkgs.makeDesktopItem ({
-        name = app.name;
-        desktopName = app.name;
-        exec = "${launchScript}/bin/${app.name}-webapp";
-        terminal = false;
-        type = "Application";
-        startupWMClass = wmClass;
-        categories = [
-          "Network"
-          "WebBrowser"
-        ];
-      } // lib.optionalAttrs (app.icon != null) {
-        icon = app.name;
-      });
+      iconPath = if app.icon != null then "$HOME/.config/chromium-webapps/icons/${app.icon}" else null;
     in
-    if app.icon != null then
-      pkgs.symlinkJoin {
-        name = "${app.name}-desktop-with-icon";
-        paths = [ desktopItem ];
-        postBuild = ''
-          rm -rf $out/share
-          cp -r ${desktopItem}/share $out/share
-          chmod -R u+w $out/share
-          mkdir -p $out/share/icons/hicolor/scalable/apps
-          cp ${app.icon} $out/share/icons/hicolor/scalable/apps/${app.name}.${
-            if lib.hasSuffix ".svg" (builtins.toString app.icon) then "svg" else "png"
-          }
-        '';
-      }
-    else
-      desktopItem;
+    pkgs.makeDesktopItem ({
+      name = app.name;
+      desktopName = app.name;
+      exec = "${launchScript}/bin/${app.name}-webapp";
+      terminal = false;
+      type = "Application";
+      startupWMClass = wmClass;
+      categories = [
+        "Network"
+        "WebBrowser"
+      ];
+    } // lib.optionalAttrs (app.icon != null) {
+      icon = iconPath;
+    });
 
 in
 {
