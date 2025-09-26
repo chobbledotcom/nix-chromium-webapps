@@ -120,7 +120,7 @@ in
       chromium
     ];
 
-    home-manager.users.${cfg.user} = {
+    home-manager.users.${cfg.user} = { lib, ... }: {
       home.packages = map mkDesktopEntry cfg.webApps;
       home.activation.setupChromiumWebappProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         ${concatMapStrings (app: ''

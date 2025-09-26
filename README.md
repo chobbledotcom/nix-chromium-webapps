@@ -94,7 +94,7 @@ Where `chromium-apps.nix` contains:
 
 ## Requirements
 
-- NixOS with home-manager
+- NixOS with [home-manager](https://github.com/nix-community/home-manager) configured as a NixOS module
 - Chromium will be automatically installed
 
 ## Data Storage
