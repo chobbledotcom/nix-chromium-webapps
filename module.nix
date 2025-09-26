@@ -72,6 +72,7 @@ let
         name = "${app.name}-desktop-with-icon";
         paths = [ desktopItem ];
         postBuild = ''
+          rm -rf $out/share
           cp -r ${desktopItem}/share $out/share
           chmod -R u+w $out/share
           mkdir -p $out/share/icons/hicolor/scalable/apps
