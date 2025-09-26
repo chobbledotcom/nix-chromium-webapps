@@ -52,7 +52,7 @@ let
           --disable-features=GlobalShortcutsPortal
       '';
 
-      desktopItem = pkgs.makeDesktopItem {
+      desktopItem = pkgs.makeDesktopItem ({
         name = app.name;
         desktopName = app.name;
         exec = "${launchScript}/bin/${app.name}-webapp";
@@ -63,7 +63,9 @@ let
           "Network"
           "WebBrowser"
         ];
-      };
+      } // lib.optionalAttrs (app.icon != null) {
+        icon = app.name;
+      });
     in
     if app.icon != null then
       pkgs.symlinkJoin {
@@ -76,7 +78,6 @@ let
           cp ${app.icon} $out/share/icons/hicolor/scalable/apps/${app.name}.${
             if lib.hasSuffix ".svg" (builtins.toString app.icon) then "svg" else "png"
           }
-          sed -i "s|Icon=.*|Icon=${app.name}|" $out/share/applications/${app.name}.desktop
         '';
       }
     else
