@@ -103,7 +103,7 @@ Where `chromium-apps.nix` contains:
 
 ## Icons
 
-Icons are passed as paths and automatically installed to `~/.local/share/icons/hicolor/scalable/apps/` using the XDG icon theme system. Desktop environments will automatically find and display them.
+Icons are passed as paths and automatically converted to PNG at multiple sizes (16, 24, 32, 48, 64, 96, 128, 256, 512) and installed to the XDG icon theme system. SVG icons are rendered with transparent backgrounds preserved. Desktop environments will automatically find and display them.
 
 ## Data Storage
 
