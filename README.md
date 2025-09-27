@@ -5,9 +5,9 @@ A home-manager module for creating Chromium-based web applications as desktop en
 ## Features
 
 - Creates isolated Chromium profiles for each web app
-- Generates proper desktop entries with WM_CLASS for window manager integration
+- Generates proper desktop entries with the right WM_CLASS for window manager integration
 - Supports custom icons via XDG icon theme system
-- External links open in system default browser
+- External links **won't** open in your preferred browser, though. Boooo. If you can crack that, please submit a PR.
 
 ## Usage
 
