@@ -45,6 +45,7 @@ let
 
       launchScript = pkgs.writeShellScriptBin "${app.name}-webapp" ''
         exec ${pkgs.chromium}/bin/chromium \
+          --window-name="${app.name}" \
           --app=${app.url} \
           --user-data-dir=$HOME/.config/chromium-webapps/${app.name} \
           --no-default-browser-check \
@@ -101,13 +102,7 @@ in
       mkIconPackage = import ./icons.nix { inherit pkgs lib; };
 
       iconPackages = lib.filter (x: x != null) (
-        map (
-          app:
-          if app.icon != null then
-            mkIconPackage app
-          else
-            null
-        ) cfg.webApps
+        map (app: if app.icon != null then mkIconPackage app else null) cfg.webApps
       );
     in
     {
